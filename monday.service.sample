@@ -1,0 +1,13 @@
+[Unit]
+Description=monday integrations service
+After=network.target
+
+[Service]
+Type=simple
+User=user
+ExecStart=/path/to/node /path/to/src/app.js
+EnvironmentFile=/path/to/.env
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
