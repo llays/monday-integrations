@@ -10,4 +10,6 @@ app.use(bodyParser.json());
 app.use(routes);
 app.listen(port);
 
+console.log(`monday-integrations app is up and running on port ${port}`);
+
 module.exports = app;

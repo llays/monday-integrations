@@ -111,6 +111,10 @@ async function syncItem(req, res) {
     const sourceColumn = await findColumnByParam(shortLivedToken, boardId, 'id', columnId);
     const targetColumn = await findColumnByParam(shortLivedToken, targetBoardId, 'title', sourceColumn.title);
 
+    if (!targetColumn) {
+      throw new Error(`Target column ${sourceColumn.title} doesn't exist`);
+    }
+
     let sourceColumnValue = await mondayService.getColumnValue(shortLivedToken, itemId, columnId);
 
     if (sourceColumn.type === 'color') {

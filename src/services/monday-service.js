@@ -54,10 +54,8 @@ const changeColumnValue = async (token, boardId, itemId, columnId, value) => {
     value = value || JSON.stringify({});
 
     const variables = { boardId, columnId, itemId, value };
-    console.log('changeColumnValue', JSON.stringify(variables));
-    const response = await mondayClient.api(query, { variables });
 
-    return response;
+    return await mondayClient.api(query, { variables });
   } catch (err) {
     console.error(err);
   }
@@ -136,15 +134,13 @@ async function getItemIdByColumnValue(token, boardId, columnId, columnValue) {
 
     const response = await mondayClient.api(query, {variables});
 
-    console.log('mondayService | getItemIdByColumnValue', boardId, columnId, columnValue, response, response.data);
-
     if (response.data && response.data.items_by_column_values && response.data.items_by_column_values.length > 0) {
       return Number(response.data.items_by_column_values[0].id);
     } else {
       return new Promise((resolve) => {
         setTimeout(async () => {
-          resolve(await getItemIdByColumnValue(...arguments));
-        }, 5000);
+          throw new Error();
+        }, 10000);
       });
     }
   } catch (err) {
