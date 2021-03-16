@@ -139,7 +139,7 @@ async function getItemIdByColumnValue(token, boardId, columnId, columnValue) {
     } else {
       return new Promise((resolve) => {
         setTimeout(async () => {
-          throw new Error();
+          throw new Error(`Failed to find item in board ${boardId} with value "${columnValue}" in column ${columnId}`);
         }, 10000);
       });
     }

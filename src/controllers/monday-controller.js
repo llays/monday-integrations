@@ -112,7 +112,7 @@ async function syncItem(req, res) {
     const targetColumn = await findColumnByParam(shortLivedToken, targetBoardId, 'title', sourceColumn.title);
 
     if (!targetColumn) {
-      throw new Error(`Target column ${sourceColumn.title} doesn't exist`);
+      throw new Error(`Failed to sync column ${sourceColumn.title}(${sourceColumn.id}) from board ${boardId} to board ${targetBoardId}`);
     }
 
     let sourceColumnValue = await mondayService.getColumnValue(shortLivedToken, itemId, columnId);
