@@ -109,6 +109,11 @@ async function syncItem(req, res) {
     );
 
     const sourceColumn = await findColumnByParam(shortLivedToken, boardId, 'id', columnId);
+
+    if (sourceColumn.type === 'subtasks') {
+      return res.status(200).send({});
+    }
+
     const targetColumn = await findColumnByParam(shortLivedToken, targetBoardId, 'title', sourceColumn.title);
 
     if (!targetColumn) {
