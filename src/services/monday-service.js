@@ -192,7 +192,7 @@ async function getBoardItems(token, boardId) {
 
     const query = `query($boardId: [Int]) {
       boards(ids: $boardId) {
-        items(limit: 100) {
+        items(limit: 200) {
           id
           group {
             id
