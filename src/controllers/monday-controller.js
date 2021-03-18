@@ -33,10 +33,47 @@ async function cloneItem(req, res) {
   }
 }
 
+async function cloneItemByPerson(req, res) {
+  const {shortLivedToken} = req.session;
+  const {payload} = req.body;
+
+  try {
+    const {inputFields} = payload;
+    const {boardId, itemId, columnId, assigneeId, targetGroupTitle, targetBoardId} = inputFields;
+
+    if (!await checkIfCorrectAssignee(shortLivedToken, itemId, columnId, assigneeId)) {
+      return res.status(200).send({});
+    }
+
+    const targetGroupId = await getGroupIdByTitle(shortLivedToken, targetBoardId, targetGroupTitle);
+    const campaignDomain = await mondayService.getItemName(shortLivedToken, itemId);
+    const columnValues = await getColumnValues(shortLivedToken, boardId, targetBoardId, itemId);
+
+    await mondayService.createItem(shortLivedToken, {
+      boardId: targetBoardId,
+      groupId: targetGroupId,
+      itemName: campaignDomain,
+      columnValues: columnValues,
+    });
+
+    return res.status(200).send({});
+  } catch (err) {
+    console.error(err);
+
+    return res.status(500).send({ message: 'internal server error' });
+  }
+}
+
 async function checkIfNameContains(shortLivedToken, itemId, nameContains) {
   const name = await mondayService.getItemName(shortLivedToken, itemId);
 
   return !name.toLowerCase().includes(nameContains.toLowerCase());  // inverted
+}
+
+async function checkIfCorrectAssignee(token, itemId, columnId, assigneeId) {
+  const columnValue = await mondayService.getColumnValue(token, itemId, columnId);
+
+  return columnValue && JSON.parse(columnValue).personsAndTeams[0].id === assigneeId;
 }
 
 async function getCampaignDomain(token, boardId) {
@@ -78,10 +115,12 @@ async function getColumnValues(token, boardId, targetBoardId, itemId, linkColumn
     targetColumnValues[targetColumn.id] = JSON.parse(correspondedField.value);
   });
 
-  targetColumnValues[linkColumnId] = {
-    url: `https://${process.env.MONDAY_ACCOUNT_SUBDOMAIN}.monday.com/boards/${boardId}/pulses/${itemId}`,
-    text: `${boardId}:${itemId}`,
-  };
+  if (linkColumnId) {
+    targetColumnValues[linkColumnId] = {
+      url: `https://${process.env.MONDAY_ACCOUNT_SUBDOMAIN}.monday.com/boards/${boardId}/pulses/${itemId}`,
+      text: `${boardId}:${itemId}`,
+    };
+  }
 
   return targetColumnValues;
 }
@@ -106,6 +145,56 @@ async function syncItem(req, res) {
 
     const {targetBoardId, targetItemId} = (
       await getTargetIds(shortLivedToken, boardId, anotherBoardId, itemId, linkColumn.id)
+    );
+
+    const sourceColumn = await findColumnByParam(shortLivedToken, boardId, 'id', columnId);
+
+    if (sourceColumn.type === 'subtasks') {
+      return res.status(200).send({});
+    }
+
+    const targetColumn = await findColumnByParam(shortLivedToken, targetBoardId, 'title', sourceColumn.title);
+
+    if (!targetColumn) {
+      throw new Error(`Failed to sync column ${sourceColumn.title}(${sourceColumn.id}) from board ${boardId} to board ${targetBoardId}`);
+    }
+
+    let sourceColumnValue = await mondayService.getColumnValue(shortLivedToken, itemId, columnId);
+
+    if (sourceColumn.type === 'color' && sourceColumnValue !== null) {
+      sourceColumnValue = convertStatusValue(sourceColumn, sourceColumnValue);
+    }
+
+    await mondayService.changeColumnValue(shortLivedToken, targetBoardId, targetItemId, targetColumn.id, sourceColumnValue);
+
+    return res.status(200).send({});
+  } catch (err) {
+    console.error(err);
+
+    return res.status(500).send({ message: 'internal server error' });
+  }
+}
+
+async function syncItemByPerson(req, res) {
+  const {shortLivedToken} = req.session;
+  const {payload} = req.body;
+
+  try {
+    const {inputFields} = payload;
+    const {boardId, itemId, columnId, assigneeColumnId, assigneeId, anotherBoardId, linkColumnTitle} = inputFields;
+
+    if (!await checkIfCorrectAssignee(shortLivedToken, itemId, assigneeColumnId, assigneeId)) {
+      return res.status(200).send({});
+    }
+
+    const sourceLinkColumn = await findColumnByParam(shortLivedToken, boardId, 'title', linkColumnTitle);
+    const sourceLinkColumnValue = await mondayService.getColumnValue(shortLivedToken, itemId, sourceLinkColumn.id);
+    const targetIds = JSON.parse(sourceLinkColumnValue).text;
+
+    const targetLinkColumn = await findColumnByParam(shortLivedToken, anotherBoardId, 'title', linkColumnTitle);
+    const targetBoardId = anotherBoardId;
+    const targetItemId = (
+      await mondayService.getItemIdByColumnValue(shortLivedToken, targetBoardId, targetLinkColumn.id, targetIds)
     );
 
     const sourceColumn = await findColumnByParam(shortLivedToken, boardId, 'id', columnId);
@@ -311,7 +400,9 @@ function getCreatorJSON(creatorId) {
 
 module.exports = {
   cloneItem,
+  cloneItemByPerson,
   syncItem,
+  syncItemByPerson,
   subscribeTeam,
   mapExistingItems,
   recipeSubscribed,
