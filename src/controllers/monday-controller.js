@@ -122,7 +122,7 @@ async function syncItem(req, res) {
 
     let sourceColumnValue = await mondayService.getColumnValue(shortLivedToken, itemId, columnId);
 
-    if (sourceColumn.type === 'color') {
+    if (sourceColumn.type === 'color' && sourceColumnValue !== null) {
       sourceColumnValue = convertStatusValue(sourceColumn, sourceColumnValue);
     }
 
