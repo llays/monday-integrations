@@ -186,8 +186,10 @@ async function mapExistingItems(req, res) {
   try {
     const items = await mondayService.getBoardItems(shortLivedToken, boardId);
 
-    setTimeout(() => {
-      items.forEach((item) => callAction(webhookUrl, boardId, Number(item.id)));
+    const interval = setInterval(() => {
+      callAction(webhookUrl, boardId, Number(items.shift().id));
+
+      if (!items.length) clearInterval(interval);
     }, 5000);
 
     return res.status(200).send({});
