@@ -79,7 +79,7 @@ async function checkIfCorrectAssignee(token, itemId, columnId, assigneeId) {
 async function getCampaignDomain(token, boardId) {
   const boardName = await mondayService.getBoardName(token, boardId);
 
-  return boardName.split('—')[0];
+  return boardName.split('—')[0].trim();
 }
 
 async function findColumnByParam(token, boardId, paramKey, paramValue) {
