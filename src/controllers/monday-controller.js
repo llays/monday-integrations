@@ -9,7 +9,7 @@ async function cloneItem(req, res) {
     const {inputFields} = payload;
     const {boardId, itemId, nameContains, targetGroupTitle, targetBoardId, linkColumnTitle} = inputFields;
 
-    if (!await checkIfNameContains(shortLivedToken, itemId, nameContains)) {
+    if (await checkIfNameContains(shortLivedToken, itemId, nameContains)) {
       return res.status(200).send({});
     }
 
@@ -65,9 +65,18 @@ async function cloneItemByPerson(req, res) {
 }
 
 async function checkIfNameContains(shortLivedToken, itemId, nameContains) {
-  const name = await mondayService.getItemName(shortLivedToken, itemId);
+  let name = await mondayService.getItemName(shortLivedToken, itemId);
+  name = name.toLowerCase();
 
-  return !name.toLowerCase().includes(nameContains.toLowerCase());  // inverted
+  const chunks = nameContains.toLowerCase().split(',');
+
+  let contains = false;
+
+  chunks.forEach((chunk) => {
+    contains = contains || name.includes(chunk.trim());
+  });
+
+  return contains;
 }
 
 async function checkIfCorrectAssignee(token, itemId, columnId, assigneeId) {
@@ -133,7 +142,7 @@ async function syncItem(req, res) {
     const {inputFields} = payload;
     const {boardId, itemId, columnId, nameContains, anotherBoardId, linkColumnTitle} = inputFields;
 
-    if (!await checkIfNameContains(shortLivedToken, itemId, nameContains)) {
+    if (await checkIfNameContains(shortLivedToken, itemId, nameContains)) {
       return res.status(200).send({});
     }
 
@@ -338,7 +347,7 @@ async function setMonth(req, res)  {
     const {inputFields} = payload;
     const {boardId, itemId, nameContains, columnId} = inputFields;
 
-    if (!await checkIfNameContains(shortLivedToken, itemId, nameContains)) {
+    if (await checkIfNameContains(shortLivedToken, itemId, nameContains)) {
       return res.status(200).send({});
     }
 
@@ -362,7 +371,7 @@ async function assignCreator(req, res)  {
     const {inputFields} = payload;
     const {boardId, itemId, nameContains, columnId} = inputFields;
 
-    if (!await checkIfNameContains(shortLivedToken, itemId, nameContains)) {
+    if (await checkIfNameContains(shortLivedToken, itemId, nameContains)) {
       return res.status(200).send({});
     }
 
